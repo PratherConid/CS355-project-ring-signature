@@ -103,7 +103,7 @@ pub fn compute_padded_hash(message_hash: &BigUint) -> BigUint {
     let n_ff: u32 = (RSA_MODULUS_BYTES - HASH_BYTES - 3).try_into().unwrap();
     let two: BigUint = BigUint::from_u32(2).unwrap();
     let mut pad = (&two).pow(n_ff * 8 + 1);
-    pad = (pad - (1 as u32)) * (16 as u32);
+    pad = (pad - (1 as u32)) * (0x100 as u32);
     pad = pad * (&two).pow((HASH_BYTES * 8).try_into().unwrap());
     pad + message_hash
 }
@@ -133,7 +133,7 @@ pub fn create_ring_circuit(max_num_pks: usize) -> RingSignatureCircuit {
     let sig_target = builder.add_virtual_biguint_target(64);
 
     // Construct SNARK circuit for relation R
-    let sig_pow = pow_65537(&mut builder, &padded_hash_target, &sig_pk_target);
+    let sig_pow = pow_65537(&mut builder, &sig_target, &sig_pk_target);
     let vrfy = builder.eq_biguint(&sig_pow, &padded_hash_target);
     let mut pk_in_set = builder.constant_bool(false);
     for i in 0..max_num_pks {
@@ -177,7 +177,7 @@ pub fn create_ring_proof(
 
     // Set the witness values in pw
     pw.set_biguint_target(&circuit.sig_pk_target, &pk_val.n)?;
-    pw.set_biguint_target(&circuit.padded_hash_target, &sig_val.sig)?;
+    pw.set_biguint_target(&circuit.padded_hash_target, &padded_hash)?;
     // Set public values
     pw.set_biguint_target(&circuit.sig_target, &sig_val.sig)?;
     for (value, target) in public_keys.iter().zip(circuit.pk_targets.iter()) {
